@@ -2,13 +2,15 @@
 
 A Discord bot for discovering and summarizing academic papers from [arXiv](https://arxiv.org).
 
-Built with Python and `discord.py`, it uses slash commands to search arXiv with filters, display structured results in embeds, and let users inspect individual papers through an interactive dropdown menu.
+Built with Python and `discord.py`, it uses slash commands to search arXiv with filters, display structured results in embeds, let users inspect individual papers through an interactive dropdown, and save papers to a personal SQLite library.
 
 ## Features
 
 - Search arXiv with optional filters: category, sort order, and result count
 - Display results in compact, scannable embeds with authors, date, categories, and links
 - Select a paper from a dropdown menu to view full details (abstract, DOI, PDF link)
+- Save papers to a per-user SQLite library with one click
+- View and manage your saved library
 - Summarize the top matching paper for a given query
 - Guild-specific slash command sync for instant updates during development
 
@@ -19,6 +21,8 @@ Built with Python and `discord.py`, it uses slash commands to search arXiv with 
 | `/ping` | Check if the bot is online |
 | `/paper_search <query>` | Search arXiv with optional filters and interactive result selection |
 | `/paper_summary <query>` | Get a detailed summary of the top matching paper |
+| `/my_library` | View all papers you've saved |
+| `/remove_paper <arxiv_id>` | Remove a paper from your library |
 
 ### `/paper_search` options
 
@@ -97,12 +101,16 @@ research-paper-assistant/
 ├── .env.example
 ├── commands/
 │   └── papers.py       # Slash commands (Cog)
+├── database/
+│   └── connection.py   # SQLite connection & schema init
+├── repositories/
+│   └── library_repository.py  # Library CRUD operations
 ├── models/
 │   └── paper.py        # Paper dataclass
 ├── services/
 │   └── arxiv.py        # arXiv API client & XML parsing
 ├── views/
-│   └── paper_select.py # Interactive dropdown for paper details
+│   └── paper_select.py # Interactive dropdown & save button
 └── utils/
     ├── embeds.py       # Discord embed builders
     └── formatting.py   # Text formatting helpers
@@ -113,6 +121,7 @@ research-paper-assistant/
 - **Python**
 - **[discord.py](https://discordpy.readthedocs.io/)** — Discord API wrapper with slash command support
 - **[aiohttp](https://docs.aiohttp.org/)** — Async HTTP client for arXiv API requests
+- **[aiosqlite](https://github.com/omnilib/aiosqlite)** — Async SQLite for per-user paper library
 - **[python-dotenv](https://github.com/theskumar/python-dotenv)** — Environment variable loading
 - **[arXiv API](https://info.arxiv.org/help/api/)** — Academic paper metadata and abstracts
 - **xml.etree.ElementTree** — XML parsing from the Python standard library
@@ -122,6 +131,5 @@ research-paper-assistant/
 Planned next improvements:
 
 - `/citation_bibtex`
-- Reading list support
 - Result pagination
 - Additional paper export formats

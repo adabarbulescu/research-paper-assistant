@@ -4,7 +4,7 @@ import discord
 
 from models.paper import Paper
 from services.arxiv import build_quick_summary
-from utils.formatting import format_authors, format_categories, truncate
+from utils.formatting import format_authors, format_categories, format_saved_date, truncate
 
 
 def build_search_embed(query: str, papers: list[Paper]) -> discord.Embed:
@@ -76,4 +76,40 @@ def build_detail_embed(paper: Paper) -> discord.Embed:
     embed.add_field(name="Links", value=links, inline=False)
 
     embed.set_footer(text=f"arXiv:{paper.arxiv_id}")
+    return embed
+
+
+def build_library_embed(entries: list[dict]) -> discord.Embed:
+    count = len(entries)
+    embed = discord.Embed(
+        title="\U0001F4DA  My Library",
+        description=f"You have **{count}** saved paper{'s' if count != 1 else ''}",
+        color=0x9B59B6,
+    )
+
+    for idx, entry in enumerate(entries[:15], start=1):
+        paper = entry["paper"]
+        saved_at = format_saved_date(entry.get("saved_at", ""))
+        authors = format_authors(paper.authors, limit=2)
+        cats = format_categories(paper.categories, limit=2)
+
+        value_lines = [
+            f"{authors}  \u2022  {paper.published_date}  \u2022  `{cats}`",
+            f"Saved {saved_at}  \u2022  `{paper.arxiv_id}`",
+            f"[\U0001F4C4 arXiv]({paper.arxiv_url})",
+        ]
+        if paper.pdf_url:
+            value_lines[-1] += f"  \u2022  [\U0001F4E5 PDF]({paper.pdf_url})"
+
+        embed.add_field(
+            name=f"`{idx}` {truncate(paper.title, 200)}",
+            value=truncate("\n".join(value_lines), 1024),
+            inline=False,
+        )
+
+    if count > 15:
+        embed.set_footer(text=f"Showing 15 of {count} saved papers")
+    else:
+        embed.set_footer(text="Use /remove_paper <id> to remove a paper")
+
     return embed

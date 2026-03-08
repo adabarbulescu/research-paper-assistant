@@ -19,13 +19,14 @@ def format_authors(authors: list[str], limit: int = 3) -> str:
     return result
 
 
-def format_published_date(published: str | None) -> str:
-    if not published:
-        return "Unknown"
-    return published[:10]
-
-
 def format_categories(categories: list[str], limit: int = 5) -> str:
     if not categories:
         return "N/A"
     return ", ".join(categories[:limit])
+
+
+def format_saved_date(iso_timestamp: str) -> str:
+    """Format an ISO timestamp to a short readable date."""
+    if not iso_timestamp:
+        return "Unknown"
+    return iso_timestamp[:10]
