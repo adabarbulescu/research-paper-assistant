@@ -7,8 +7,9 @@ from discord import app_commands
 from discord.ext import commands
 
 from config import logger
+from repositories.library_repository import get_saved_papers
 from services.arxiv import get_first_arxiv_result, search_arxiv
-from utils.embeds import build_detail_embed, build_search_embed
+from utils.embeds import build_detail_embed, build_library_embed, build_search_embed
 from views.paper_select import PaperSelectView
 
 
@@ -119,6 +120,36 @@ class Papers(commands.Cog):
             await _send_error(
                 interaction,
                 "Error while fetching paper summary. Please try again.",
+            )
+
+    @app_commands.command(
+        name="my_library",
+        description="View your saved papers",
+    )
+    async def my_library(self, interaction: discord.Interaction) -> None:
+        logger.info("/my_library called by user=%s", interaction.user.id)
+
+        try:
+            await interaction.response.defer(thinking=True, ephemeral=True)
+
+            papers = await get_saved_papers(str(interaction.user.id))
+
+            if not papers:
+                await interaction.followup.send(
+                    "\U0001F4DA Your library is empty. "
+                    "Use `/paper_search` to find papers, then save them!",
+                    ephemeral=True,
+                )
+                return
+
+            embed = build_library_embed(papers)
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        except Exception:
+            logger.exception("Unhandled error in /my_library")
+            await _send_error(
+                interaction,
+                "Error while loading your library. Please try again.",
             )
 
 

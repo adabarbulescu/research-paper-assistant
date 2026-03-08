@@ -77,3 +77,35 @@ def build_detail_embed(paper: Paper) -> discord.Embed:
 
     embed.set_footer(text=f"arXiv:{paper.arxiv_id}")
     return embed
+
+
+def build_library_embed(papers: list[Paper]) -> discord.Embed:
+    embed = discord.Embed(
+        title="\U0001F4DA  My Library",
+        description=f"You have **{len(papers)}** saved paper{'s' if len(papers) != 1 else ''}",
+        color=0x9B59B6,
+    )
+
+    for idx, paper in enumerate(papers[:15], start=1):
+        authors = format_authors(paper.authors, limit=2)
+        cats = format_categories(paper.categories, limit=2)
+
+        value_lines = [
+            f"{authors}  \u2022  {paper.published_date}  \u2022  `{cats}`",
+            f"[\U0001F4C4 arXiv]({paper.arxiv_url})",
+        ]
+        if paper.pdf_url:
+            value_lines[-1] += f"  \u2022  [\U0001F4E5 PDF]({paper.pdf_url})"
+
+        embed.add_field(
+            name=f"`{idx}` {truncate(paper.title, 200)}",
+            value=truncate("\n".join(value_lines), 1024),
+            inline=False,
+        )
+
+    if len(papers) > 15:
+        embed.set_footer(text=f"Showing 15 of {len(papers)} saved papers")
+    else:
+        embed.set_footer(text="Research Paper Assistant")
+
+    return embed
