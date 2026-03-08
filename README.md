@@ -2,23 +2,33 @@
 
 A Discord bot for discovering and summarizing academic papers from [arXiv](https://arxiv.org).
 
-Built with Python and `discord.py`, it uses slash commands to search arXiv, retrieve paper metadata, and display structured results directly inside Discord.
+Built with Python and `discord.py`, it uses slash commands to search arXiv with filters, display structured results in embeds, and let users inspect individual papers through an interactive dropdown menu.
 
 ## Features
 
-- Search arXiv papers directly from Discord
-- Display top matching results in Discord embeds
-- Summarize the first matching paper for a given query
-- Show key paper metadata: title, authors, publication date, categories, arXiv link, and abstract
-- Use guild-specific slash command sync for fast development and testing
+- Search arXiv with optional filters: category, sort order, and result count
+- Display results in compact, scannable embeds with authors, date, categories, and links
+- Select a paper from a dropdown menu to view full details (abstract, DOI, PDF link)
+- Summarize the top matching paper for a given query
+- Guild-specific slash command sync for instant updates during development
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | `/ping` | Check if the bot is online |
-| `/paper_search <query>` | Search arXiv and display top results |
-| `/paper_summary <query>` | Get a structured summary of the first matching paper |
+| `/paper_search <query>` | Search arXiv with optional filters and interactive result selection |
+| `/paper_summary <query>` | Get a detailed summary of the top matching paper |
+
+### `/paper_search` options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `query` | Topic or keywords to search for | *(required)* |
+| `category` | arXiv category filter (e.g. `cs.AI`, `math.CO`) | None |
+| `sort_by` | `relevance`, `submittedDate`, or `lastUpdatedDate` | `relevance` |
+| `sort_order` | `descending` or `ascending` | `descending` |
+| `max_results` | Number of results, 1–25 | `5` |
 
 ## Setup
 
@@ -73,6 +83,7 @@ python bot.py
 
 ```
 /paper_search transformers
+/paper_search query:attention category:cs.AI sort_by:submittedDate max_results:10
 /paper_summary graph neural networks
 ```
 
@@ -85,9 +96,13 @@ research-paper-assistant/
 ├── requirements.txt
 ├── .env.example
 ├── commands/
-│   └── papers.py       # Slash commands
+│   └── papers.py       # Slash commands (Cog)
+├── models/
+│   └── paper.py        # Paper dataclass
 ├── services/
-│   └── arxiv.py        # arXiv API client
+│   └── arxiv.py        # arXiv API client & XML parsing
+├── views/
+│   └── paper_select.py # Interactive dropdown for paper details
 └── utils/
     ├── embeds.py       # Discord embed builders
     └── formatting.py   # Text formatting helpers
@@ -109,5 +124,4 @@ Planned next improvements:
 - `/citation_bibtex`
 - Reading list support
 - Result pagination
-- Richer embeds
 - Additional paper export formats

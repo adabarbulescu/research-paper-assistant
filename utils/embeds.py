@@ -1,64 +1,66 @@
+from __future__ import annotations
+
 import discord
 
+from models.paper import Paper
 from services.arxiv import build_quick_summary
-from utils.formatting import (
-    format_authors,
-    format_categories,
-    format_published_date,
-    truncate,
-)
+from utils.formatting import format_authors, format_categories, truncate
 
 
-def build_search_embed(query: str, papers: list[dict]) -> discord.Embed:
+def build_search_embed(query: str, papers: list[Paper]) -> discord.Embed:
     embed = discord.Embed(
-        title=f"arXiv results for: {truncate(query, 256)}",
-        description=f"Top {min(len(papers), 5)} results",
-        color=discord.Color.blue(),
+        title=f"\U0001F50D  {truncate(query, 240)}",
+        description=f"Showing **{len(papers)}** result{'s' if len(papers) != 1 else ''} from arXiv",
+        color=0x3498DB,
     )
 
-    for index, paper in enumerate(papers[:5], start=1):
-        title = truncate(paper.get("title", "Untitled"), 256)
-        link = paper.get("link", "")
-        authors = format_authors(paper.get("authors", []), limit=3)
-        published = format_published_date(paper.get("published"))
+    for idx, paper in enumerate(papers, start=1):
+        authors = format_authors(paper.authors, limit=2)
+        cats = format_categories(paper.categories, limit=2)
 
-        value = (
-            f"**Authors:** {authors}\n"
-            f"**Published:** {published}\n"
-            f"[Read on arXiv]({link})"
-        )
+        value_lines = [
+            f"{authors}  \u2022  {paper.published_date}  \u2022  `{cats}`",
+            truncate(paper.summary, 120),
+            f"[\U0001F4C4 arXiv]({paper.arxiv_url})",
+        ]
+        if paper.pdf_url:
+            value_lines[-1] += f"  \u2022  [\U0001F4E5 PDF]({paper.pdf_url})"
 
         embed.add_field(
-            name=f"{index}. {title}",
-            value=truncate(value, 1024),
+            name=f"`{idx}` {truncate(paper.title, 200)}",
+            value=truncate("\n".join(value_lines), 1024),
             inline=False,
         )
 
-    embed.set_footer(text="Research Paper Assistant • arXiv search")
+    embed.set_footer(text="Select a paper below for the full details")
     return embed
 
 
-def build_summary_embed(paper: dict) -> discord.Embed:
-    title = truncate(paper.get("title", "Untitled"), 256)
-    link = paper.get("link", "")
-    authors = format_authors(paper.get("authors", []), limit=5)
-    published = format_published_date(paper.get("published"))
-    categories = format_categories(paper.get("categories", []), limit=5)
-    abstract = paper.get("summary", "") or "No abstract available."
+def build_detail_embed(paper: Paper) -> discord.Embed:
+    authors = format_authors(paper.authors, limit=8)
+    cats = format_categories(paper.categories, limit=6)
+    abstract = paper.summary or "No abstract available."
     quick_summary = build_quick_summary(abstract)
 
     embed = discord.Embed(
-        title=title,
-        url=link,
-        description="Structured paper overview",
-        color=discord.Color.green(),
+        title=truncate(paper.title, 256),
+        url=paper.arxiv_url,
+        color=0x2ECC71,
     )
 
     embed.add_field(name="Authors", value=truncate(authors, 1024), inline=False)
-    embed.add_field(name="Published", value=truncate(published, 1024), inline=True)
-    embed.add_field(name="Categories", value=truncate(categories, 1024), inline=True)
+    embed.add_field(name="Published", value=paper.published_date, inline=True)
+    embed.add_field(name="Categories", value=truncate(cats, 1024), inline=True)
+
+    if paper.doi:
+        embed.add_field(
+            name="DOI",
+            value=f"[{paper.doi}](https://doi.org/{paper.doi})",
+            inline=True,
+        )
+
     embed.add_field(
-        name="Quick Summary",
+        name="\U0001F4DD Quick Summary",
         value=truncate(quick_summary, 1024),
         inline=False,
     )
@@ -68,5 +70,10 @@ def build_summary_embed(paper: dict) -> discord.Embed:
         inline=False,
     )
 
-    embed.set_footer(text="Research Paper Assistant • arXiv summary")
+    links = f"[\U0001F4C4 arXiv]({paper.arxiv_url})"
+    if paper.pdf_url:
+        links += f"  \u2022  [\U0001F4E5 PDF]({paper.pdf_url})"
+    embed.add_field(name="Links", value=links, inline=False)
+
+    embed.set_footer(text=f"arXiv:{paper.arxiv_id}")
     return embed
