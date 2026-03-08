@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from config import logger, settings
+from database.connection import init_db
 
 
 EXTENSIONS = [
@@ -22,6 +23,9 @@ class ResearchPaperAssistantBot(commands.Bot):
         self.dev_guild = discord.Object(id=guild_id)
 
     async def setup_hook(self) -> None:
+        await init_db()
+        logger.info("Database initialized")
+
         for ext in EXTENSIONS:
             await self.load_extension(ext)
             logger.info("Loaded extension: %s", ext)
