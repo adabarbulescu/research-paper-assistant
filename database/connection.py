@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import aiosqlite
 
-DATABASE_PATH = "library.db"
+DATABASE_PATH = Path(__file__).resolve().parent.parent / "library.db"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS saved_papers (
@@ -23,7 +25,7 @@ CREATE TABLE IF NOT EXISTS saved_papers (
 
 
 async def get_connection() -> aiosqlite.Connection:
-    conn = await aiosqlite.connect(DATABASE_PATH)
+    conn = await aiosqlite.connect(str(DATABASE_PATH))
     conn.row_factory = aiosqlite.Row
     await conn.execute("PRAGMA journal_mode=WAL;")
     return conn

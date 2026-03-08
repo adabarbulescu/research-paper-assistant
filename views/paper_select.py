@@ -53,9 +53,10 @@ class PaperDetailView(discord.ui.View):
             if isinstance(item, discord.ui.Button):
                 item.disabled = True
 
-        if self.message:
+        msg = getattr(self, "message", None)
+        if msg is not None:
             try:
-                await self.message.edit(view=self)
+                await msg.edit(view=self)
             except discord.HTTPException:
                 pass
 
@@ -108,8 +109,9 @@ class PaperSelectView(discord.ui.View):
             if isinstance(item, discord.ui.Select):
                 item.disabled = True
 
-        if self.message:
+        msg = getattr(self, "message", None)
+        if msg is not None:
             try:
-                await self.message.edit(view=self)
+                await msg.edit(view=self)
             except discord.HTTPException:
                 pass

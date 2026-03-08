@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from aiosqlite import IntegrityError
+
 from database.connection import get_connection
 from models.paper import Paper
 
@@ -32,8 +34,7 @@ async def save_paper(user_id: str, paper: Paper) -> bool:
         )
         await conn.commit()
         return True
-    except Exception:
-        # UNIQUE constraint violation → duplicate
+    except IntegrityError:
         return False
     finally:
         await conn.close()
@@ -52,13 +53,14 @@ async def paper_exists(user_id: str, paper_id: str) -> bool:
         await conn.close()
 
 
-async def get_saved_papers(user_id: str) -> list[Paper]:
+async def get_saved_papers(user_id: str) -> list[dict]:
+    """Return saved papers with metadata. Each dict has 'paper' (Paper) and 'saved_at' (str)."""
     conn = await get_connection()
     try:
         cursor = await conn.execute(
             """
             SELECT paper_id, title, authors, published, categories,
-                   arxiv_url, pdf_url, doi
+                   arxiv_url, pdf_url, doi, saved_at
             FROM saved_papers
             WHERE user_id = ?
             ORDER BY saved_at DESC
@@ -67,17 +69,20 @@ async def get_saved_papers(user_id: str) -> list[Paper]:
         )
         rows = await cursor.fetchall()
         return [
-            Paper(
-                arxiv_id=row["paper_id"],
-                title=row["title"],
-                authors=[a.strip() for a in (row["authors"] or "").split(",") if a.strip()],
-                published=row["published"] or "",
-                categories=[c.strip() for c in (row["categories"] or "").split(",") if c.strip()],
-                arxiv_url=row["arxiv_url"],
-                pdf_url=row["pdf_url"] or "",
-                doi=row["doi"] or "",
-            )
-        for row in rows
+            {
+                "paper": Paper(
+                    arxiv_id=row["paper_id"],
+                    title=row["title"],
+                    authors=[a.strip() for a in (row["authors"] or "").split(",") if a.strip()],
+                    published=row["published"] or "",
+                    categories=[c.strip() for c in (row["categories"] or "").split(",") if c.strip()],
+                    arxiv_url=row["arxiv_url"],
+                    pdf_url=row["pdf_url"] or "",
+                    doi=row["doi"] or "",
+                ),
+                "saved_at": row["saved_at"],
+            }
+            for row in rows
         ]
     finally:
         await conn.close()
