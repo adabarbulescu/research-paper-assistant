@@ -5,6 +5,7 @@ import discord
 from config import logger
 from models.paper import Paper
 from repositories.library_repository import save_paper
+from utils.citations import to_bibtex, to_markdown_citation, to_plain_citation
 from utils.embeds import build_detail_embed
 from utils.formatting import truncate
 
@@ -43,14 +44,40 @@ class SaveButton(discord.ui.Button):
             await interaction.response.edit_message(view=self.view)
 
 
+class CiteSelect(discord.ui.Select):
+    def __init__(self, paper: Paper) -> None:
+        self.paper = paper
+        options = [
+            discord.SelectOption(label="BibTeX", value="bibtex", description="LaTeX bibliography entry"),
+            discord.SelectOption(label="Plain text", value="plain", description="Simple text citation"),
+            discord.SelectOption(label="Markdown", value="markdown", description="Markdown formatted citation"),
+        ]
+        super().__init__(placeholder="Choose citation format\u2026", options=options, min_values=1, max_values=1)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        fmt = self.values[0]
+        formatters = {
+            "bibtex": to_bibtex,
+            "plain": to_plain_citation,
+            "markdown": to_markdown_citation,
+        }
+        citation = formatters[fmt](self.paper)
+        lang = "bibtex" if fmt == "bibtex" else "md" if fmt == "markdown" else ""
+        await interaction.response.send_message(
+            f"```{lang}\n{citation}\n```",
+            ephemeral=True,
+        )
+
+
 class PaperDetailView(discord.ui.View):
     def __init__(self, paper: Paper, timeout: float = 120) -> None:
         super().__init__(timeout=timeout)
         self.add_item(SaveButton(paper))
+        self.add_item(CiteSelect(paper))
 
     async def on_timeout(self) -> None:
         for item in self.children:
-            if isinstance(item, discord.ui.Button):
+            if isinstance(item, (discord.ui.Button, discord.ui.Select)):
                 item.disabled = True
 
         msg = getattr(self, "message", None)

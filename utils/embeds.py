@@ -110,6 +110,6 @@ def build_library_embed(entries: list[dict]) -> discord.Embed:
     if count > 15:
         embed.set_footer(text=f"Showing 15 of {count} saved papers")
     else:
-        embed.set_footer(text="Use /remove_paper <id> to remove a paper")
+        embed.set_footer(text="Remove with /remove_paper <arxiv_id>  (e.g. /remove_paper 2512.22190)")
 
     return embed

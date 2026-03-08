@@ -9,12 +9,14 @@ from discord.ext import commands
 from config import logger
 from repositories.library_repository import get_saved_papers, remove_paper
 from services.arxiv import get_first_arxiv_result, search_arxiv
+from utils.citations import to_bibtex, to_markdown_citation, to_plain_citation
 from utils.embeds import build_detail_embed, build_library_embed, build_search_embed
 from views.paper_select import PaperSelectView
 
 
 SortBy = Literal["relevance", "submittedDate", "lastUpdatedDate"]
 SortOrder = Literal["descending", "ascending"]
+CitationFormat = Literal["bibtex", "plain", "markdown"]
 
 
 async def _send_error(interaction: discord.Interaction, message: str) -> None:
@@ -183,6 +185,57 @@ class Papers(commands.Cog):
             await _send_error(
                 interaction,
                 "Error while removing paper. Please try again.",
+            )
+
+    @app_commands.command(
+        name="export_citation",
+        description="Generate a citation for an arXiv paper",
+    )
+    @app_commands.describe(
+        arxiv_id="arXiv ID of the paper (e.g. 2512.22190)",
+        format="Citation format",
+    )
+    async def export_citation(
+        self,
+        interaction: discord.Interaction,
+        arxiv_id: str,
+        format: CitationFormat = "bibtex",
+    ) -> None:
+        logger.info(
+            "/export_citation arxiv_id=%r format=%s user=%s",
+            arxiv_id, format, interaction.user.id,
+        )
+
+        try:
+            await interaction.response.defer(thinking=True, ephemeral=True)
+
+            paper = await get_first_arxiv_result(arxiv_id.strip())
+
+            if not paper:
+                await interaction.followup.send(
+                    f"Could not find paper `{arxiv_id}` on arXiv.",
+                    ephemeral=True,
+                )
+                return
+
+            formatters = {
+                "bibtex": to_bibtex,
+                "plain": to_plain_citation,
+                "markdown": to_markdown_citation,
+            }
+            citation = formatters[format](paper)
+
+            lang = "bibtex" if format == "bibtex" else "md" if format == "markdown" else ""
+            await interaction.followup.send(
+                f"**{format.title()} citation for** `{paper.arxiv_id}`\n```{lang}\n{citation}\n```",
+                ephemeral=True,
+            )
+
+        except Exception:
+            logger.exception("Unhandled error in /export_citation")
+            await _send_error(
+                interaction,
+                "Error generating citation. Please try again.",
             )
 
 

@@ -11,6 +11,7 @@ Built with Python and `discord.py`, it uses slash commands to search arXiv with 
 - Select a paper from a dropdown menu to view full details (abstract, DOI, PDF link)
 - Save papers to a per-user SQLite library with one click
 - View and manage your saved library
+- Export citations in BibTeX, plain text, or Markdown — via command or detail view dropdown
 - Summarize the top matching paper for a given query
 - Guild-specific slash command sync for instant updates during development
 
@@ -23,6 +24,7 @@ Built with Python and `discord.py`, it uses slash commands to search arXiv with 
 | `/paper_summary <query>` | Get a detailed summary of the top matching paper |
 | `/my_library` | View all papers you've saved |
 | `/remove_paper <arxiv_id>` | Remove a paper from your library |
+| `/export_citation <arxiv_id>` | Generate a citation (BibTeX, plain, or Markdown) |
 
 ### `/paper_search` options
 
@@ -89,6 +91,7 @@ python bot.py
 /paper_search transformers
 /paper_search query:attention category:cs.AI sort_by:submittedDate max_results:10
 /paper_summary graph neural networks
+/export_citation arxiv_id:2401.12345 format:bibtex
 ```
 
 ## Project Structure
@@ -110,8 +113,9 @@ research-paper-assistant/
 ├── services/
 │   └── arxiv.py        # arXiv API client & XML parsing
 ├── views/
-│   └── paper_select.py # Interactive dropdown & save button
+│   └── paper_select.py # Interactive dropdown, save & cite
 └── utils/
+    ├── citations.py    # BibTeX / plain / Markdown formatters
     ├── embeds.py       # Discord embed builders
     └── formatting.py   # Text formatting helpers
 ```
@@ -130,6 +134,5 @@ research-paper-assistant/
 
 Planned next improvements:
 
-- `/citation_bibtex`
 - Result pagination
-- Additional paper export formats
+- Batch export from saved library
