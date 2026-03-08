@@ -24,11 +24,22 @@ def _bibtex_key(paper: Paper) -> str:
     return f"{safe_surname}{year}"
 
 
+# Single-pass mapping so replacements never interact with each other
+_BIBTEX_ESCAPE_MAP = {
+    "\\": "\\textbackslash{}",
+    "&": "\\&",
+    "%": "\\%",
+    "#": "\\#",
+    "_": "\\_",
+    "{": "\\{",
+    "}": "\\}",
+}
+_BIBTEX_ESCAPE_RE = re.compile("|".join(re.escape(k) for k in _BIBTEX_ESCAPE_MAP))
+
+
 def _escape_bibtex(text: str) -> str:
     """Escape special LaTeX characters in BibTeX field values."""
-    for char in ("&", "%", "#"):
-        text = text.replace(char, f"\\{char}")
-    return text
+    return _BIBTEX_ESCAPE_RE.sub(lambda m: _BIBTEX_ESCAPE_MAP[m.group()], text)
 
 
 def to_bibtex(paper: Paper) -> str:

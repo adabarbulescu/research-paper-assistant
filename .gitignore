@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
 
 # Virtual environment
 venv/
@@ -11,8 +12,16 @@ venv/
 # Database
 library.db
 
-# VS Code
+# Testing
+.pytest_cache/
+
+# IDE
 .vscode/
+.idea/
 
 # OS
 .DS_Store
+Thumbs.db
+
+# Temp
+.tmp/

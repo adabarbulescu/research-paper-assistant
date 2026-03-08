@@ -3,11 +3,14 @@ from discord import app_commands
 from discord.ext import commands
 
 from config import logger, settings
-from database.connection import init_db
+from database.migrations import init_db
 
 
 EXTENSIONS = [
     "commands.papers",
+    "commands.library",
+    "commands.collections",
+    "commands.discovery",
 ]
 
 

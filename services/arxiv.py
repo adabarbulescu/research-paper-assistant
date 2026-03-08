@@ -17,8 +17,8 @@ ATOM_NS = {
 SORT_BY_OPTIONS = {"relevance", "submittedDate", "lastUpdatedDate"}
 SORT_ORDER_OPTIONS = {"descending", "ascending"}
 
-# Matches the numeric arXiv ID from a full URL or bare ID
-_ID_PATTERN = re.compile(r"(\d{4}\.\d{4,5})(v\d+)?$")
+# Matches modern (2401.12345) and legacy arXiv IDs (hep-th/9901001, math.AG/0309136)
+_ID_PATTERN = re.compile(r"(?:(\d{4}\.\d{4,5})|([a-zA-Z][a-zA-Z0-9.\-]+/\d{7}))(v\d+)?$")
 
 
 def _clean_text(text: str) -> str:
@@ -29,7 +29,9 @@ def _clean_text(text: str) -> str:
 
 def _extract_arxiv_id(id_url: str) -> str:
     match = _ID_PATTERN.search(id_url)
-    return match.group(1) if match else id_url
+    if match:
+        return match.group(1) or match.group(2)
+    return id_url
 
 
 def build_query(
@@ -137,6 +139,23 @@ async def search_arxiv(
     entries = root.findall("atom:entry", ATOM_NS)
 
     return [_parse_entry(entry) for entry in entries]
+
+
+async def get_paper_by_id(arxiv_id: str) -> Paper | None:
+    """Fetch a single paper by exact arXiv ID using the id_list API parameter."""
+    params: dict[str, str | int] = {"id_list": arxiv_id, "max_results": 1}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(ARXIV_API_URL, params=params) as response:
+            response.raise_for_status()
+            data = await response.text()
+
+    root = ET.fromstring(data)
+    entries = root.findall("atom:entry", ATOM_NS)
+    if not entries:
+        return None
+    paper = _parse_entry(entries[0])
+    return paper if paper.title else None
 
 
 async def get_first_arxiv_result(

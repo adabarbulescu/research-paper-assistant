@@ -7,16 +7,13 @@ from discord import app_commands
 from discord.ext import commands
 
 from config import logger
-from repositories.library_repository import get_saved_papers, remove_paper
 from services.arxiv import get_first_arxiv_result, search_arxiv
-from utils.citations import to_bibtex, to_markdown_citation, to_plain_citation
-from utils.embeds import build_detail_embed, build_library_embed, build_search_embed
+from utils.embeds import build_detail_embed, build_search_embed
 from views.paper_select import PaperSelectView
 
 
 SortBy = Literal["relevance", "submittedDate", "lastUpdatedDate"]
 SortOrder = Literal["descending", "ascending"]
-CitationFormat = Literal["bibtex", "plain", "markdown"]
 
 
 async def _send_error(interaction: discord.Interaction, message: str) -> None:
@@ -46,7 +43,7 @@ class Papers(commands.Cog):
         category="arXiv category filter (e.g. cs.AI, math.CO, physics.gen-ph)",
         sort_by="How to sort results",
         sort_order="Sort direction",
-        max_results="Number of results (1-25, default 5)",
+        max_results="Number of results (1-10, default 5)",
     )
     async def paper_search(
         self,
@@ -55,7 +52,7 @@ class Papers(commands.Cog):
         category: str | None = None,
         sort_by: SortBy = "relevance",
         sort_order: SortOrder = "descending",
-        max_results: app_commands.Range[int, 1, 25] = 5,
+        max_results: app_commands.Range[int, 1, 10] = 5,
     ) -> None:
         logger.info(
             "/paper_search query=%r category=%r sort=%s/%s max=%d",
@@ -122,120 +119,6 @@ class Papers(commands.Cog):
             await _send_error(
                 interaction,
                 "Error while fetching paper summary. Please try again.",
-            )
-
-    @app_commands.command(
-        name="my_library",
-        description="View your saved papers",
-    )
-    async def my_library(self, interaction: discord.Interaction) -> None:
-        logger.info("/my_library called by user=%s", interaction.user.id)
-
-        try:
-            await interaction.response.defer(thinking=True, ephemeral=True)
-
-            entries = await get_saved_papers(str(interaction.user.id))
-
-            if not entries:
-                await interaction.followup.send(
-                    "\U0001F4DA Your library is empty. "
-                    "Use `/paper_search` to find papers, then save them!",
-                    ephemeral=True,
-                )
-                return
-
-            embed = build_library_embed(entries)
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception:
-            logger.exception("Unhandled error in /my_library")
-            await _send_error(
-                interaction,
-                "Error while loading your library. Please try again.",
-            )
-
-    @app_commands.command(
-        name="remove_paper",
-        description="Remove a paper from your library by its arXiv ID",
-    )
-    @app_commands.describe(paper_id="arXiv ID of the paper to remove (e.g. 2512.22190)")
-    async def remove_paper_cmd(
-        self,
-        interaction: discord.Interaction,
-        paper_id: str,
-    ) -> None:
-        logger.info("/remove_paper called by user=%s paper_id=%r", interaction.user.id, paper_id)
-
-        try:
-            removed = await remove_paper(str(interaction.user.id), paper_id.strip())
-
-            if removed:
-                await interaction.response.send_message(
-                    f"\u2705 Removed `{paper_id}` from your library.",
-                    ephemeral=True,
-                )
-            else:
-                await interaction.response.send_message(
-                    f"Paper `{paper_id}` is not in your library.",
-                    ephemeral=True,
-                )
-
-        except Exception:
-            logger.exception("Unhandled error in /remove_paper")
-            await _send_error(
-                interaction,
-                "Error while removing paper. Please try again.",
-            )
-
-    @app_commands.command(
-        name="export_citation",
-        description="Generate a citation for an arXiv paper",
-    )
-    @app_commands.describe(
-        arxiv_id="arXiv ID of the paper (e.g. 2512.22190)",
-        format="Citation format",
-    )
-    async def export_citation(
-        self,
-        interaction: discord.Interaction,
-        arxiv_id: str,
-        format: CitationFormat = "bibtex",
-    ) -> None:
-        logger.info(
-            "/export_citation arxiv_id=%r format=%s user=%s",
-            arxiv_id, format, interaction.user.id,
-        )
-
-        try:
-            await interaction.response.defer(thinking=True, ephemeral=True)
-
-            paper = await get_first_arxiv_result(arxiv_id.strip())
-
-            if not paper:
-                await interaction.followup.send(
-                    f"Could not find paper `{arxiv_id}` on arXiv.",
-                    ephemeral=True,
-                )
-                return
-
-            formatters = {
-                "bibtex": to_bibtex,
-                "plain": to_plain_citation,
-                "markdown": to_markdown_citation,
-            }
-            citation = formatters[format](paper)
-
-            lang = "bibtex" if format == "bibtex" else "md" if format == "markdown" else ""
-            await interaction.followup.send(
-                f"**{format.title()} citation for** `{paper.arxiv_id}`\n```{lang}\n{citation}\n```",
-                ephemeral=True,
-            )
-
-        except Exception:
-            logger.exception("Unhandled error in /export_citation")
-            await _send_error(
-                interaction,
-                "Error generating citation. Please try again.",
             )
 
 
