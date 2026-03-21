@@ -7,6 +7,7 @@ from aiosqlite import IntegrityError
 
 from database.connection import get_connection
 from models.paper import Paper
+from utils.serialization import decode_str_list, encode_str_list
 
 
 async def save_paper(user_id: str, guild_id: str, paper: Paper) -> bool:
@@ -25,10 +26,10 @@ async def save_paper(user_id: str, guild_id: str, paper: Paper) -> bool:
                 guild_id,
                 paper.arxiv_id,
                 paper.title,
-                ", ".join(paper.authors),
+                encode_str_list(paper.authors),
                 paper.summary,
                 paper.published,
-                ", ".join(paper.categories),
+                encode_str_list(paper.categories),
                 paper.arxiv_url,
                 paper.pdf_url,
                 paper.doi,
@@ -76,10 +77,10 @@ async def get_saved_papers(user_id: str, guild_id: str) -> list[dict]:
                 "paper": Paper(
                     arxiv_id=row["paper_id"],
                     title=row["title"],
-                    authors=[a.strip() for a in (row["authors"] or "").split(",") if a.strip()],
+                    authors=decode_str_list(row["authors"]),
                     summary=row["summary"] or "",
                     published=row["published"] or "",
-                    categories=[c.strip() for c in (row["categories"] or "").split(",") if c.strip()],
+                    categories=decode_str_list(row["categories"]),
                     arxiv_url=row["arxiv_url"],
                     pdf_url=row["pdf_url"] or "",
                     doi=row["doi"] or "",
@@ -130,10 +131,10 @@ async def get_all_papers(user_id: str, guild_id: str) -> list[Paper]:
             Paper(
                 arxiv_id=row["paper_id"],
                 title=row["title"],
-                authors=[a.strip() for a in (row["authors"] or "").split(",") if a.strip()],
+                authors=decode_str_list(row["authors"]),
                 summary=row["summary"] or "",
                 published=row["published"] or "",
-                categories=[c.strip() for c in (row["categories"] or "").split(",") if c.strip()],
+                categories=decode_str_list(row["categories"]),
                 arxiv_url=row["arxiv_url"],
                 pdf_url=row["pdf_url"] or "",
                 doi=row["doi"] or "",
@@ -187,10 +188,8 @@ async def get_library_stats(user_id: str, guild_id: str) -> dict:
         rows = await cursor.fetchall()
         cat_counter: Counter[str] = Counter()
         for row in rows:
-            for cat in (row["categories"] or "").split(","):
-                cat = cat.strip()
-                if cat:
-                    cat_counter[cat] += 1
+            for cat in decode_str_list(row["categories"]):
+                cat_counter[cat] += 1
 
         return {
             "total": total,

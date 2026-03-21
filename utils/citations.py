@@ -54,7 +54,7 @@ def to_bibtex(paper: Paper) -> str:
         f"  author    = {{{authors}}},",
         f"  year      = {{{year}}},",
         f"  eprint    = {{{paper.arxiv_id}}},",
-        f"  archivePrefix = {{arXiv}},",
+        "  archivePrefix = {arXiv},",
         f"  primaryClass  = {{{paper.primary_category}}},",
         f"  url       = {{{paper.arxiv_url}}},",
     ]

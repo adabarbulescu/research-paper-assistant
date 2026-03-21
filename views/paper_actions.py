@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+
 import discord
 
 from config import logger
@@ -64,8 +66,20 @@ class CiteSelect(discord.ui.Select):
         }
         citation = formatters[fmt](self.paper)
         lang = "bibtex" if fmt == "bibtex" else "md" if fmt == "markdown" else ""
+        payload = f"```{lang}\n{citation}\n```"
+
+        if len(payload) < 2000:
+            await interaction.response.send_message(payload, ephemeral=True)
+            return
+
+        ext = {"bibtex": "bib", "markdown": "md", "plain": "txt"}[fmt]
+        file = discord.File(
+            io.BytesIO(citation.encode()),
+            filename=f"{self.paper.arxiv_id}.{ext}",
+        )
         await interaction.response.send_message(
-            f"```{lang}\n{citation}\n```",
+            "Citation was too long for an inline message, attached as a file.",
+            file=file,
             ephemeral=True,
         )
 

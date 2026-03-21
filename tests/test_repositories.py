@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from models.paper import Paper
@@ -63,6 +65,74 @@ async def test_get_saved_papers_guild_isolation(db, sample_paper: Paper):
 
     assert len(await get_saved_papers("user1", "guild1")) == 1
     assert len(await get_saved_papers("user1", "guild2")) == 0
+
+
+@pytest.mark.asyncio
+async def test_get_saved_papers_supports_json_and_legacy_formats(db):
+    from database.connection import get_connection
+    from repositories.library_repository import get_saved_papers
+
+    conn = await get_connection()
+    try:
+        await conn.execute(
+            """
+            INSERT INTO saved_papers
+                (user_id, guild_id, paper_id, title, authors, summary, published, categories,
+                 arxiv_url, pdf_url, doi, saved_at, status, note)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "user1",
+                "guild1",
+                "json-paper",
+                "JSON Paper",
+                json.dumps(["Doe, Jr.", "Alice Smith"]),
+                "",
+                "2024-01-01",
+                json.dumps(["cs.AI", "math.AG"]),
+                "https://arxiv.org/abs/json-paper",
+                "",
+                "",
+                "2024-01-01T00:00:00Z",
+                "to-read",
+                "",
+            ),
+        )
+        await conn.execute(
+            """
+            INSERT INTO saved_papers
+                (user_id, guild_id, paper_id, title, authors, summary, published, categories,
+                 arxiv_url, pdf_url, doi, saved_at, status, note)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "user1",
+                "guild1",
+                "legacy-paper",
+                "Legacy Paper",
+                "Alice Smith, Bob Stone",
+                "",
+                "2024-01-01",
+                "cs.AI, cs.CL",
+                "https://arxiv.org/abs/legacy-paper",
+                "",
+                "",
+                "2024-01-01T00:00:01Z",
+                "to-read",
+                "",
+            ),
+        )
+        await conn.commit()
+    finally:
+        await conn.close()
+
+    entries = await get_saved_papers("user1", "guild1")
+    by_id = {e["paper"].arxiv_id: e["paper"] for e in entries}
+
+    assert by_id["json-paper"].authors == ["Doe, Jr.", "Alice Smith"]
+    assert by_id["json-paper"].categories == ["cs.AI", "math.AG"]
+    assert by_id["legacy-paper"].authors == ["Alice Smith", "Bob Stone"]
+    assert by_id["legacy-paper"].categories == ["cs.AI", "cs.CL"]
 
 
 @pytest.mark.asyncio

@@ -3,11 +3,15 @@ from __future__ import annotations
 import re
 
 import aiohttp
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 
 from models.paper import Paper
 
 ARXIV_API_URL = "https://export.arxiv.org/api/query"
+ARXIV_REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=20, connect=10, sock_read=15)
+ARXIV_HEADERS = {
+    "User-Agent": "research-paper-assistant/1.0 (+https://github.com/adabarbulescu/research-paper-assistant)"
+}
 
 ATOM_NS = {
     "atom": "http://www.w3.org/2005/Atom",
@@ -32,6 +36,13 @@ def _extract_arxiv_id(id_url: str) -> str:
     if match:
         return match.group(1) or match.group(2)
     return id_url
+
+
+def _parse_feed(xml_data: str) -> ET.Element:
+    try:
+        return ET.fromstring(xml_data)
+    except ET.ParseError as exc:
+        raise ValueError("Invalid XML response from arXiv API") from exc
 
 
 def build_query(
@@ -130,12 +141,15 @@ async def search_arxiv(
     if sort_order in SORT_ORDER_OPTIONS and sort_order != "descending":
         params["sortOrder"] = sort_order
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(
+        timeout=ARXIV_REQUEST_TIMEOUT,
+        headers=ARXIV_HEADERS,
+    ) as session:
         async with session.get(ARXIV_API_URL, params=params) as response:
             response.raise_for_status()
             data = await response.text()
 
-    root = ET.fromstring(data)
+    root = _parse_feed(data)
     entries = root.findall("atom:entry", ATOM_NS)
 
     return [_parse_entry(entry) for entry in entries]
@@ -143,14 +157,21 @@ async def search_arxiv(
 
 async def get_paper_by_id(arxiv_id: str) -> Paper | None:
     """Fetch a single paper by exact arXiv ID using the id_list API parameter."""
-    params: dict[str, str | int] = {"id_list": arxiv_id, "max_results": 1}
+    clean_id = arxiv_id.strip()
+    if not clean_id:
+        return None
 
-    async with aiohttp.ClientSession() as session:
+    params: dict[str, str | int] = {"id_list": clean_id, "max_results": 1}
+
+    async with aiohttp.ClientSession(
+        timeout=ARXIV_REQUEST_TIMEOUT,
+        headers=ARXIV_HEADERS,
+    ) as session:
         async with session.get(ARXIV_API_URL, params=params) as response:
             response.raise_for_status()
             data = await response.text()
 
-    root = ET.fromstring(data)
+    root = _parse_feed(data)
     entries = root.findall("atom:entry", ATOM_NS)
     if not entries:
         return None

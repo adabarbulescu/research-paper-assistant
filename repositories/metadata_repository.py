@@ -3,6 +3,7 @@ from __future__ import annotations
 from database.connection import get_connection
 from models.paper import Paper
 from models.saved_paper import VALID_STATUSES
+from utils.serialization import decode_str_list
 
 
 async def set_status(user_id: str, guild_id: str, paper_id: str, status: str) -> str:
@@ -41,10 +42,10 @@ async def get_papers_by_status(user_id: str, guild_id: str, status: str) -> list
                 "paper": Paper(
                     arxiv_id=row["paper_id"],
                     title=row["title"],
-                    authors=[a.strip() for a in (row["authors"] or "").split(",") if a.strip()],
+                    authors=decode_str_list(row["authors"]),
                     summary=row["summary"] or "",
                     published=row["published"] or "",
-                    categories=[c.strip() for c in (row["categories"] or "").split(",") if c.strip()],
+                    categories=decode_str_list(row["categories"]),
                     arxiv_url=row["arxiv_url"],
                     pdf_url=row["pdf_url"] or "",
                     doi=row["doi"] or "",

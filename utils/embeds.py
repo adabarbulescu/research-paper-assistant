@@ -5,6 +5,7 @@ import discord
 from models.paper import Paper
 from services.arxiv import build_quick_summary
 from utils.formatting import format_authors, format_categories, format_saved_date, truncate
+from utils.serialization import decode_str_list
 
 
 def build_search_embed(query: str, papers: list[Paper]) -> discord.Embed:
@@ -196,8 +197,12 @@ def build_collection_embed(collection_name: str, papers: list[dict]) -> discord.
     status_emoji = {"to-read": "\U0001F4D6", "reading": "\U0001F440", "done": "\u2705"}
 
     for idx, row in enumerate(papers[:15], start=1):
-        authors_str = row.get("authors", "")
-        authors_list = [a.strip() for a in authors_str.split(",") if a.strip()] if authors_str else []
+        raw_authors = row.get("authors", "")
+        authors_list = (
+            raw_authors
+            if isinstance(raw_authors, list)
+            else decode_str_list(raw_authors)
+        )
         authors = format_authors(authors_list, limit=2)
         status = row.get("status", "to-read")
         s_emoji = status_emoji.get(status, "")

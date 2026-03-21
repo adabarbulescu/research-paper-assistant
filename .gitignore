@@ -14,6 +14,8 @@ library.db
 
 # Testing
 .pytest_cache/
+pytest-cache-files-*/
+.ruff_cache/
 
 # IDE
 .vscode/
@@ -25,3 +27,6 @@ Thumbs.db
 
 # Temp
 .tmp/
+
+# Local duplicate folder safety
+research-paper-assistant/

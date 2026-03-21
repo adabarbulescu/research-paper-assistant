@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    container_name: research-paper-assistant
+    env_file:
+      - .env
+    environment:
+      - DATABASE_PATH=/data/library.db
+    volumes:
+      - paper_data:/data
+    restart: unless-stopped
+
+volumes:
+  paper_data:

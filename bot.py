@@ -1,3 +1,5 @@
+import os
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -37,9 +39,17 @@ class ResearchPaperAssistantBot(commands.Bot):
         await self.tree.sync(guild=self.dev_guild)
         logger.info("Synced application commands to guild %s", self.dev_guild.id)
 
-        # Clear stale global commands so they don't ghost alongside guild ones
-        self.tree.clear_commands(guild=None)
-        await self.tree.sync()
+        clear_globals = os.getenv("CLEAR_GLOBAL_COMMANDS", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        if clear_globals:
+            # Opt-in cleanup only; avoid deleting global commands unexpectedly in prod.
+            self.tree.clear_commands(guild=None)
+            await self.tree.sync()
+            logger.info("Cleared global application commands (CLEAR_GLOBAL_COMMANDS enabled)")
 
     async def on_ready(self) -> None:
         if self.user:

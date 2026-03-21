@@ -21,6 +21,7 @@ from repositories.collection_repository import (
 from repositories.library_repository import get_paper_ids
 from utils.citations import to_bibtex, to_markdown_citation, to_plain_citation
 from utils.embeds import build_collection_embed, build_collections_list_embed
+from utils.serialization import decode_str_list
 from views.confirm import ConfirmView
 from views.pagination import PaginatedCollectionsView, COLLECTIONS_PER_PAGE
 
@@ -40,14 +41,26 @@ async def _send_error(interaction: discord.Interaction, message: str) -> None:
 
 
 def _row_to_paper(row: dict) -> Paper:
-    authors_str = row.get("authors", "") or ""
+    raw_authors = row.get("authors", "")
+    authors = (
+        raw_authors
+        if isinstance(raw_authors, list)
+        else decode_str_list(raw_authors)
+    )
+    raw_categories = row.get("categories", "")
+    categories = (
+        raw_categories
+        if isinstance(raw_categories, list)
+        else decode_str_list(raw_categories)
+    )
+
     return Paper(
         arxiv_id=row["paper_id"],
         title=row.get("title", ""),
-        authors=[a.strip() for a in authors_str.split(",") if a.strip()],
+        authors=authors,
         summary=row.get("summary", "") or "",
         published=row.get("published", "") or "",
-        categories=[c.strip() for c in (row.get("categories", "") or "").split(",") if c.strip()],
+        categories=categories,
         arxiv_url=row.get("arxiv_url", ""),
         pdf_url=row.get("pdf_url", "") or "",
         doi=row.get("doi", "") or "",

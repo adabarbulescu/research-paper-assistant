@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import aiosqlite
 
-DATABASE_PATH = Path(__file__).resolve().parent.parent / "library.db"
+DEFAULT_DATABASE_PATH = Path(__file__).resolve().parent.parent / "library.db"
+DATABASE_PATH = Path(os.getenv("DATABASE_PATH", str(DEFAULT_DATABASE_PATH)))
 
 
 async def get_connection() -> aiosqlite.Connection:

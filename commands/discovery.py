@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 from typing import Literal
 
 import discord
@@ -26,6 +27,33 @@ async def _send_error(interaction: discord.Interaction, message: str) -> None:
         await interaction.followup.send(message, ephemeral=True)
     else:
         await interaction.response.send_message(message, ephemeral=True)
+
+
+async def _send_citation(
+    interaction: discord.Interaction,
+    *,
+    paper_id: str,
+    fmt: CitationFormat,
+    citation: str,
+) -> None:
+    heading = f"**{fmt.title()} citation for** `{paper_id}`"
+    lang = "bibtex" if fmt == "bibtex" else "md" if fmt == "markdown" else ""
+    payload = f"{heading}\n```{lang}\n{citation}\n```"
+
+    if len(payload) < 2000:
+        await interaction.followup.send(payload, ephemeral=True)
+        return
+
+    ext = {"bibtex": "bib", "markdown": "md", "plain": "txt"}[fmt]
+    file = discord.File(
+        io.BytesIO(citation.encode()),
+        filename=f"{paper_id}.{ext}",
+    )
+    await interaction.followup.send(
+        f"{heading}\nCitation was too long for an inline message, attached as a file.",
+        file=file,
+        ephemeral=True,
+    )
 
 
 class Discovery(commands.Cog):
@@ -139,11 +167,11 @@ class Discovery(commands.Cog):
                 "markdown": to_markdown_citation,
             }
             citation = formatters[format](paper)
-
-            lang = "bibtex" if format == "bibtex" else "md" if format == "markdown" else ""
-            await interaction.followup.send(
-                f"**{format.title()} citation for** `{paper.arxiv_id}`\n```{lang}\n{citation}\n```",
-                ephemeral=True,
+            await _send_citation(
+                interaction,
+                paper_id=paper.arxiv_id,
+                fmt=format,
+                citation=citation,
             )
 
         except Exception:

@@ -1,0 +1,7 @@
+exclude_dirs:
+  - tests
+  - .git
+  - .tmp
+  - __pycache__
+skips:
+  - B101

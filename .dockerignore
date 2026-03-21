@@ -1,0 +1,13 @@
+.git
+.github
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.tmp/
+pytest-cache-files*
+venv/
+.venv/
+.env
+library.db
+research-paper-assistant/

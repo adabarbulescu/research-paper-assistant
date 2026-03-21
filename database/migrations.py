@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import logging
+
+import aiosqlite
+
 from database.connection import get_connection
 
 SCHEMA = """
@@ -46,6 +50,8 @@ COLUMN_MIGRATIONS = [
     "ALTER TABLE saved_papers ADD COLUMN note TEXT;",
     "ALTER TABLE saved_papers ADD COLUMN summary TEXT;",
 ]
+
+logger = logging.getLogger("research_paper_assistant")
 
 
 async def _needs_guild_id_migration(conn) -> bool:
@@ -127,8 +133,11 @@ async def init_db() -> None:
         for migration in COLUMN_MIGRATIONS:
             try:
                 await conn.execute(migration)
-            except Exception:
-                pass  # column already exists
+            except aiosqlite.OperationalError as exc:
+                if "duplicate column name" in str(exc).lower():
+                    continue
+                logger.exception("Schema migration failed: %s", migration)
+                raise
         await _migrate_guild_id(conn)
         await conn.commit()
     finally:

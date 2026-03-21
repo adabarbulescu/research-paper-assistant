@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from aiosqlite import IntegrityError
 
 from database.connection import get_connection
+from utils.serialization import decode_str_list
 
 
 async def create_collection(user_id: str, guild_id: str, name: str) -> bool:
@@ -126,10 +127,10 @@ async def get_collection_papers(
             {
                 "paper_id": row["paper_id"],
                 "title": row["title"],
-                "authors": row["authors"],
+                "authors": decode_str_list(row["authors"]),
                 "summary": row["summary"],
                 "published": row["published"],
-                "categories": row["categories"],
+                "categories": decode_str_list(row["categories"]),
                 "arxiv_url": row["arxiv_url"],
                 "pdf_url": row["pdf_url"],
                 "doi": row["doi"],

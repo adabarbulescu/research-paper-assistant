@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import uuid
 from pathlib import Path
 from unittest.mock import patch
 
@@ -24,9 +25,11 @@ def event_loop():
 # ── In-memory database ──────────────────────────────────────────
 
 @pytest.fixture()
-async def db(tmp_path: Path):
+async def db():
     """Yield a patched in-memory database that init_db has already set up."""
-    db_path = tmp_path / "test.db"
+    base_tmp = Path.cwd() / ".tmp" / "pytest-db"
+    base_tmp.mkdir(parents=True, exist_ok=True)
+    db_path = base_tmp / f"test-{uuid.uuid4().hex}.db"
 
     async def _get_connection() -> aiosqlite.Connection:
         conn = await aiosqlite.connect(str(db_path))
@@ -48,6 +51,11 @@ async def db(tmp_path: Path):
         await conn.close()
 
         yield _get_connection
+
+    try:
+        db_path.unlink(missing_ok=True)
+    except PermissionError:
+        pass
 
 
 # ── Sample papers ────────────────────────────────────────────────

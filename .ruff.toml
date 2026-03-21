@@ -1,0 +1,7 @@
+exclude = [
+  ".git",
+  ".tmp",
+  ".pytest_cache",
+  "pytest-cache-files-*",
+  "__pycache__",
+]
