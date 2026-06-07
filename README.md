@@ -14,7 +14,7 @@ Supports paper search, personal libraries, collections, reading-status tracking,
 
 ## 🌟 Features
 
-````carousel
+### Search & Discovery Workflow
 ```mermaid
 graph TD
     A[Discord User] -->|/paper_search| B(arXiv API)
@@ -22,7 +22,8 @@ graph TD
     C --> D[Read Summaries]
     C --> E[Save to Library]
 ```
-<!-- slide -->
+
+### Organization Workflow
 ```mermaid
 graph TD
     A[Saved Paper] --> B{Organize}
@@ -30,7 +31,8 @@ graph TD
     B --> D[Add Personal Notes]
     B --> E[Assign to Collections]
 ```
-<!-- slide -->
+
+### Export Workflow
 ```mermaid
 graph TD
     A[Library] --> B{Export & Share}
@@ -38,7 +40,6 @@ graph TD
     B --> D[Markdown Export]
     B --> E[Find Related Papers]
 ```
-````
 
 - **🔍 Search & Discover**: Query arXiv papers directly from Discord with category filtering and sorting.
 - **📚 Personal Libraries**: Save papers to a per-user, per-guild SQLite library.
