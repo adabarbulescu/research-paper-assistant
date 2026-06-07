@@ -13,6 +13,7 @@ EXTENSIONS = [
     "commands.library",
     "commands.collections",
     "commands.discovery",
+    "commands.help",
 ]
 
 
