@@ -29,15 +29,7 @@ ReadingStatus = Literal["to-read", "reading", "done"]
 STATUS_EMOJI = {"to-read": "\U0001F4D6", "reading": "\U0001F4D6", "done": "\u2705"}
 
 
-def _gid(interaction: discord.Interaction) -> str:
-    return str(interaction.guild_id or "")
-
-
-async def _send_error(interaction: discord.Interaction, message: str) -> None:
-    if interaction.response.is_done():
-        await interaction.followup.send(message, ephemeral=True)
-    else:
-        await interaction.response.send_message(message, ephemeral=True)
+from commands.common import get_guild_id, send_error, paper_id_autocomplete
 
 
 class Library(commands.Cog):
@@ -49,12 +41,7 @@ class Library(commands.Cog):
     async def _paper_id_ac(
         self, interaction: discord.Interaction, current: str,
     ) -> list[app_commands.Choice[str]]:
-        try:
-            ids = await get_paper_ids(str(interaction.user.id), _gid(interaction))
-            filtered = [i for i in ids if current.lower() in i.lower()]
-            return [app_commands.Choice(name=i, value=i) for i in filtered[:25]]
-        except Exception:
-            return []
+        return await paper_id_autocomplete(interaction, current)
 
     # ── Core Library ─────────────────────────────────────────────
 
@@ -68,7 +55,7 @@ class Library(commands.Cog):
         try:
             await interaction.response.defer(thinking=True, ephemeral=True)
 
-            entries = await get_saved_papers(str(interaction.user.id), _gid(interaction))
+            entries = await get_saved_papers(str(interaction.user.id), get_guild_id(interaction))
 
             if not entries:
                 await interaction.followup.send(
@@ -89,7 +76,7 @@ class Library(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /my_library")
-            await _send_error(
+            await send_error(
                 interaction,
                 "Error while loading your library. Please try again.",
             )
@@ -110,7 +97,7 @@ class Library(commands.Cog):
             await interaction.response.defer(thinking=True, ephemeral=True)
 
             uid = str(interaction.user.id)
-            gid = _gid(interaction)
+            gid = get_guild_id(interaction)
             pid = paper_id.strip()
 
             view = ConfirmView()
@@ -139,7 +126,7 @@ class Library(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /remove_paper")
-            await _send_error(
+            await send_error(
                 interaction,
                 "Error while removing paper. Please try again.",
             )
@@ -171,7 +158,7 @@ class Library(commands.Cog):
 
         try:
             result = await set_status(
-                str(interaction.user.id), _gid(interaction), arxiv_id.strip(), status,
+                str(interaction.user.id), get_guild_id(interaction), arxiv_id.strip(), status,
             )
 
             if result == "updated":
@@ -193,7 +180,7 @@ class Library(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /set_status")
-            await _send_error(interaction, "Error setting status. Please try again.")
+            await send_error(interaction, "Error setting status. Please try again.")
 
     @set_status_cmd.autocomplete("arxiv_id")
     async def _status_ac(self, interaction: discord.Interaction, current: str):
@@ -215,7 +202,7 @@ class Library(commands.Cog):
             await interaction.response.defer(thinking=True, ephemeral=True)
 
             entries = await get_papers_by_status(
-                str(interaction.user.id), _gid(interaction), status,
+                str(interaction.user.id), get_guild_id(interaction), status,
             )
 
             if not entries:
@@ -238,7 +225,7 @@ class Library(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /library_by_status")
-            await _send_error(interaction, "Error loading papers. Please try again.")
+            await send_error(interaction, "Error loading papers. Please try again.")
 
     # ── Stats ────────────────────────────────────────────────────
 
@@ -253,7 +240,7 @@ class Library(commands.Cog):
             await interaction.response.defer(thinking=True, ephemeral=True)
 
             stats = await get_library_stats(
-                str(interaction.user.id), _gid(interaction),
+                str(interaction.user.id), get_guild_id(interaction),
             )
 
             if stats["total"] == 0:
@@ -268,7 +255,7 @@ class Library(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /library_stats")
-            await _send_error(interaction, "Error loading stats. Please try again.")
+            await send_error(interaction, "Error loading stats. Please try again.")
 
     # ── Notes ────────────────────────────────────────────────────
 
@@ -290,7 +277,7 @@ class Library(commands.Cog):
 
         try:
             updated = await set_note(
-                str(interaction.user.id), _gid(interaction), arxiv_id.strip(), note,
+                str(interaction.user.id), get_guild_id(interaction), arxiv_id.strip(), note,
             )
 
             if updated:
@@ -306,7 +293,7 @@ class Library(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /add_note")
-            await _send_error(interaction, "Error saving note. Please try again.")
+            await send_error(interaction, "Error saving note. Please try again.")
 
     @add_note_cmd.autocomplete("arxiv_id")
     async def _add_note_ac(self, interaction: discord.Interaction, current: str):
@@ -326,7 +313,7 @@ class Library(commands.Cog):
 
         try:
             note = await get_note(
-                str(interaction.user.id), _gid(interaction), arxiv_id.strip(),
+                str(interaction.user.id), get_guild_id(interaction), arxiv_id.strip(),
             )
 
             if note is None:
@@ -347,7 +334,7 @@ class Library(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /view_note")
-            await _send_error(interaction, "Error loading note. Please try again.")
+            await send_error(interaction, "Error loading note. Please try again.")
 
     @view_note_cmd.autocomplete("arxiv_id")
     async def _view_note_ac(self, interaction: discord.Interaction, current: str):
@@ -371,7 +358,7 @@ class Library(commands.Cog):
 
         try:
             updated = await set_note(
-                str(interaction.user.id), _gid(interaction), arxiv_id.strip(), note,
+                str(interaction.user.id), get_guild_id(interaction), arxiv_id.strip(), note,
             )
 
             if updated:
@@ -387,7 +374,7 @@ class Library(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /edit_note")
-            await _send_error(interaction, "Error updating note. Please try again.")
+            await send_error(interaction, "Error updating note. Please try again.")
 
     @edit_note_cmd.autocomplete("arxiv_id")
     async def _edit_note_ac(self, interaction: discord.Interaction, current: str):

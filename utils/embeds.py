@@ -3,6 +3,7 @@ from __future__ import annotations
 import discord
 
 from models.paper import Paper
+from models.saved_paper import SavedPaper
 from services.arxiv import build_quick_summary
 from utils.formatting import format_authors, format_categories, format_saved_date, truncate
 from utils.serialization import decode_str_list
@@ -86,7 +87,7 @@ def build_detail_embed(paper: Paper) -> discord.Embed:
 
 
 def build_library_embed(
-    entries: list[dict],
+    entries: list[SavedPaper],
     title: str = "\U0001F4DA  My Library",
     page: int | None = None,
     total_pages: int | None = None,
@@ -103,13 +104,13 @@ def build_library_embed(
     status_emoji = {"to-read": "\U0001F4D6", "reading": "\U0001F440", "done": "\u2705"}
 
     for idx, entry in enumerate(entries, start=start_index + 1):
-        paper = entry["paper"]
-        saved_at = format_saved_date(entry.get("saved_at", ""))
+        paper = entry.paper
+        saved_at = format_saved_date(entry.saved_at)
         authors = format_authors(paper.authors, limit=2)
         cats = format_categories(paper.categories, limit=2)
-        status = entry.get("status", "to-read")
+        status = entry.status
         s_emoji = status_emoji.get(status, "")
-        note = entry.get("note")
+        note = entry.note
 
         value_lines = [
             f"{s_emoji} **{status}**  \u2022  {authors}  \u2022  {paper.published_date}  \u2022  `{cats}`",
@@ -186,7 +187,7 @@ def build_collections_list_embed(
     return embed
 
 
-def build_collection_embed(collection_name: str, papers: list[dict]) -> discord.Embed:
+def build_collection_embed(collection_name: str, papers: list[SavedPaper]) -> discord.Embed:
     count = len(papers)
     embed = discord.Embed(
         title=f"\U0001F4C2  {collection_name}",

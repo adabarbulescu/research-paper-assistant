@@ -7,6 +7,7 @@ from aiosqlite import IntegrityError
 
 from database.connection import db_session
 from models.paper import Paper
+from models.saved_paper import SavedPaper
 from utils.serialization import decode_str_list, encode_str_list
 
 
@@ -67,8 +68,8 @@ async def get_saved_papers(user_id: str, guild_id: str) -> list[dict]:
         )
         rows = await cursor.fetchall()
         return [
-            {
-                "paper": Paper(
+            SavedPaper(
+                paper=Paper(
                     arxiv_id=row["paper_id"],
                     title=row["title"],
                     authors=decode_str_list(row["authors"]),
@@ -79,10 +80,10 @@ async def get_saved_papers(user_id: str, guild_id: str) -> list[dict]:
                     pdf_url=row["pdf_url"] or "",
                     doi=row["doi"] or "",
                 ),
-                "saved_at": row["saved_at"],
-                "status": row["status"],
-                "note": row["note"],
-            }
+                saved_at=row["saved_at"],
+                status=row["status"],
+                note=row["note"],
+            )
             for row in rows
         ]
 

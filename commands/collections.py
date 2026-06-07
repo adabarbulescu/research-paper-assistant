@@ -29,42 +29,10 @@ from views.pagination import PaginatedCollectionsView, COLLECTIONS_PER_PAGE
 CitationFormat = Literal["bibtex", "plain", "markdown"]
 
 
-def _gid(interaction: discord.Interaction) -> str:
-    return str(interaction.guild_id or "")
+from commands.common import get_guild_id, send_error, paper_id_autocomplete, collection_autocomplete
 
 
-async def _send_error(interaction: discord.Interaction, message: str) -> None:
-    if interaction.response.is_done():
-        await interaction.followup.send(message, ephemeral=True)
-    else:
-        await interaction.response.send_message(message, ephemeral=True)
 
-
-def _row_to_paper(row: dict) -> Paper:
-    raw_authors = row.get("authors", "")
-    authors = (
-        raw_authors
-        if isinstance(raw_authors, list)
-        else decode_str_list(raw_authors)
-    )
-    raw_categories = row.get("categories", "")
-    categories = (
-        raw_categories
-        if isinstance(raw_categories, list)
-        else decode_str_list(raw_categories)
-    )
-
-    return Paper(
-        arxiv_id=row["paper_id"],
-        title=row.get("title", ""),
-        authors=authors,
-        summary=row.get("summary", "") or "",
-        published=row.get("published", "") or "",
-        categories=categories,
-        arxiv_url=row.get("arxiv_url", ""),
-        pdf_url=row.get("pdf_url", "") or "",
-        doi=row.get("doi", "") or "",
-    )
 
 
 class Collections(commands.Cog):
@@ -76,22 +44,12 @@ class Collections(commands.Cog):
     async def _collection_ac(
         self, interaction: discord.Interaction, current: str,
     ) -> list[app_commands.Choice[str]]:
-        try:
-            names = await get_collection_names(str(interaction.user.id), _gid(interaction))
-            filtered = [n for n in names if current.lower() in n.lower()]
-            return [app_commands.Choice(name=n, value=n) for n in filtered[:25]]
-        except Exception:
-            return []
+        return await collection_autocomplete(interaction, current)
 
     async def _paper_id_ac(
         self, interaction: discord.Interaction, current: str,
     ) -> list[app_commands.Choice[str]]:
-        try:
-            ids = await get_paper_ids(str(interaction.user.id), _gid(interaction))
-            filtered = [i for i in ids if current.lower() in i.lower()]
-            return [app_commands.Choice(name=i, value=i) for i in filtered[:25]]
-        except Exception:
-            return []
+        return await paper_id_autocomplete(interaction, current)
 
     # ── Commands ─────────────────────────────────────────────────
 
@@ -116,7 +74,7 @@ class Collections(commands.Cog):
                 return
 
             created = await create_collection(
-                str(interaction.user.id), _gid(interaction), cleaned,
+                str(interaction.user.id), get_guild_id(interaction), cleaned,
             )
 
             if created:
@@ -132,7 +90,7 @@ class Collections(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /create_collection")
-            await _send_error(interaction, "Error creating collection. Please try again.")
+            await send_error(interaction, "Error creating collection. Please try again.")
 
     @app_commands.command(
         name="my_collections",
@@ -144,7 +102,7 @@ class Collections(commands.Cog):
         try:
             await interaction.response.defer(thinking=True, ephemeral=True)
 
-            collections = await get_collections(str(interaction.user.id), _gid(interaction))
+            collections = await get_collections(str(interaction.user.id), get_guild_id(interaction))
 
             if not collections:
                 await interaction.followup.send(
@@ -165,7 +123,7 @@ class Collections(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /my_collections")
-            await _send_error(interaction, "Error loading collections. Please try again.")
+            await send_error(interaction, "Error loading collections. Please try again.")
 
     @app_commands.command(
         name="add_to_collection",
@@ -188,7 +146,7 @@ class Collections(commands.Cog):
 
         try:
             uid = str(interaction.user.id)
-            gid = _gid(interaction)
+            gid = get_guild_id(interaction)
 
             result = await add_to_collection(
                 uid, gid, collection.strip(), arxiv_id.strip(),
@@ -207,7 +165,7 @@ class Collections(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /add_to_collection")
-            await _send_error(interaction, "Error adding paper to collection. Please try again.")
+            await send_error(interaction, "Error adding paper to collection. Please try again.")
 
     @add_to_collection_cmd.autocomplete("arxiv_id")
     async def _atc_paper_ac(self, interaction: discord.Interaction, current: str):
@@ -233,7 +191,7 @@ class Collections(commands.Cog):
             await interaction.response.defer(thinking=True, ephemeral=True)
 
             papers = await get_collection_papers(
-                str(interaction.user.id), _gid(interaction), name.strip(),
+                str(interaction.user.id), get_guild_id(interaction), name.strip(),
             )
 
             if papers is None:
@@ -256,7 +214,7 @@ class Collections(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /view_collection")
-            await _send_error(interaction, "Error loading collection. Please try again.")
+            await send_error(interaction, "Error loading collection. Please try again.")
 
     @view_collection.autocomplete("name")
     async def _vc_ac(self, interaction: discord.Interaction, current: str):
@@ -283,7 +241,7 @@ class Collections(commands.Cog):
 
         try:
             result = await remove_from_collection(
-                str(interaction.user.id), _gid(interaction),
+                str(interaction.user.id), get_guild_id(interaction),
                 collection.strip(), arxiv_id.strip(),
             )
 
@@ -299,7 +257,7 @@ class Collections(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /remove_from_collection")
-            await _send_error(interaction, "Error removing paper from collection. Please try again.")
+            await send_error(interaction, "Error removing paper from collection. Please try again.")
 
     @remove_from_collection_cmd.autocomplete("arxiv_id")
     async def _rfc_paper_ac(self, interaction: discord.Interaction, current: str):
@@ -325,7 +283,7 @@ class Collections(commands.Cog):
             await interaction.response.defer(thinking=True, ephemeral=True)
 
             uid = str(interaction.user.id)
-            gid = _gid(interaction)
+            gid = get_guild_id(interaction)
             cname = name.strip()
 
             view = ConfirmView()
@@ -354,7 +312,7 @@ class Collections(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /delete_collection")
-            await _send_error(interaction, "Error deleting collection. Please try again.")
+            await send_error(interaction, "Error deleting collection. Please try again.")
 
     @delete_collection_cmd.autocomplete("name")
     async def _dc_ac(self, interaction: discord.Interaction, current: str):
@@ -383,7 +341,7 @@ class Collections(commands.Cog):
             await interaction.response.defer(thinking=True, ephemeral=True)
 
             papers_raw = await get_collection_papers(
-                str(interaction.user.id), _gid(interaction), name.strip(),
+                str(interaction.user.id), get_guild_id(interaction), name.strip(),
             )
 
             if papers_raw is None:
@@ -406,7 +364,7 @@ class Collections(commands.Cog):
                 "markdown": to_markdown_citation,
             }
             formatter = formatters[format]
-            citations = [formatter(_row_to_paper(row)) for row in papers_raw]
+            citations = [formatter(sp.paper) for sp in papers_raw]
             combined = "\n\n".join(citations)
 
             heading = f"**{len(citations)}** citations from **{name.strip()}**"
@@ -432,7 +390,7 @@ class Collections(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /export_collection")
-            await _send_error(interaction, "Error exporting citations. Please try again.")
+            await send_error(interaction, "Error exporting citations. Please try again.")
 
     @export_collection_cmd.autocomplete("name")
     async def _ec_ac(self, interaction: discord.Interaction, current: str):

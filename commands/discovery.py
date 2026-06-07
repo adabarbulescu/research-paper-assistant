@@ -18,15 +18,7 @@ from utils.embeds import build_related_embed
 CitationFormat = Literal["bibtex", "plain", "markdown"]
 
 
-def _gid(interaction: discord.Interaction) -> str:
-    return str(interaction.guild_id or "")
-
-
-async def _send_error(interaction: discord.Interaction, message: str) -> None:
-    if interaction.response.is_done():
-        await interaction.followup.send(message, ephemeral=True)
-    else:
-        await interaction.response.send_message(message, ephemeral=True)
+from commands.common import get_guild_id, send_error, paper_id_autocomplete
 
 
 async def _send_citation(
@@ -65,12 +57,7 @@ class Discovery(commands.Cog):
     async def _paper_id_ac(
         self, interaction: discord.Interaction, current: str,
     ) -> list[app_commands.Choice[str]]:
-        try:
-            ids = await get_paper_ids(str(interaction.user.id), _gid(interaction))
-            filtered = [i for i in ids if current.lower() in i.lower()]
-            return [app_commands.Choice(name=i, value=i) for i in filtered[:25]]
-        except Exception:
-            return []
+        return await paper_id_autocomplete(interaction, current)
 
     # ── Commands ─────────────────────────────────────────────────
 
@@ -90,7 +77,7 @@ class Discovery(commands.Cog):
             await interaction.response.defer(thinking=True, ephemeral=True)
 
             uid = str(interaction.user.id)
-            gid = _gid(interaction)
+            gid = get_guild_id(interaction)
 
             all_papers = await get_all_papers(uid, gid)
 
@@ -124,7 +111,7 @@ class Discovery(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /related_papers")
-            await _send_error(interaction, "Error finding related papers. Please try again.")
+            await send_error(interaction, "Error finding related papers. Please try again.")
 
     @related_papers_cmd.autocomplete("arxiv_id")
     async def _related_ac(self, interaction: discord.Interaction, current: str):
@@ -176,7 +163,7 @@ class Discovery(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /export_citation")
-            await _send_error(
+            await send_error(
                 interaction,
                 "Error generating citation. Please try again.",
             )

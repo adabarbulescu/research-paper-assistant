@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from aiosqlite import IntegrityError
 
 from database.connection import db_session
+from models.paper import Paper
+from models.saved_paper import SavedPaper
 from utils.serialization import decode_str_list
 
 
@@ -87,7 +89,7 @@ async def add_to_collection(
 
 async def get_collection_papers(
     user_id: str, guild_id: str, collection_name: str
-) -> list[dict] | None:
+) -> list[SavedPaper] | None:
     """Return papers in a collection. Returns None if collection doesn't exist."""
     async with db_session() as conn:
         cursor = await conn.execute(
@@ -115,20 +117,22 @@ async def get_collection_papers(
         )
         rows = await cursor.fetchall()
         return [
-            {
-                "paper_id": row["paper_id"],
-                "title": row["title"],
-                "authors": decode_str_list(row["authors"]),
-                "summary": row["summary"],
-                "published": row["published"],
-                "categories": decode_str_list(row["categories"]),
-                "arxiv_url": row["arxiv_url"],
-                "pdf_url": row["pdf_url"],
-                "doi": row["doi"],
-                "status": row["status"],
-                "note": row["note"],
-                "added_at": row["added_at"],
-            }
+            SavedPaper(
+                paper=Paper(
+                    arxiv_id=row["paper_id"],
+                    title=row["title"],
+                    authors=decode_str_list(row["authors"]),
+                    summary=row["summary"],
+                    published=row["published"],
+                    categories=decode_str_list(row["categories"]),
+                    arxiv_url=row["arxiv_url"],
+                    pdf_url=row["pdf_url"],
+                    doi=row["doi"],
+                ),
+                saved_at=row["added_at"],
+                status=row["status"],
+                note=row["note"],
+            )
             for row in rows
         ]
 

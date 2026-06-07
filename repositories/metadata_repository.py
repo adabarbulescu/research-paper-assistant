@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from database.connection import db_session
 from models.paper import Paper
-from models.saved_paper import VALID_STATUSES
+from models.saved_paper import SavedPaper, VALID_STATUSES
 from utils.serialization import decode_str_list
 
 
@@ -19,7 +19,7 @@ async def set_status(user_id: str, guild_id: str, paper_id: str, status: str) ->
         return "updated" if cursor.rowcount > 0 else "not_found"
 
 
-async def get_papers_by_status(user_id: str, guild_id: str, status: str) -> list[dict]:
+async def get_papers_by_status(user_id: str, guild_id: str, status: str) -> list[SavedPaper]:
     """Return saved papers filtered by status."""
     async with db_session() as conn:
         cursor = await conn.execute(
@@ -34,8 +34,8 @@ async def get_papers_by_status(user_id: str, guild_id: str, status: str) -> list
         )
         rows = await cursor.fetchall()
         return [
-            {
-                "paper": Paper(
+            SavedPaper(
+                paper=Paper(
                     arxiv_id=row["paper_id"],
                     title=row["title"],
                     authors=decode_str_list(row["authors"]),
@@ -46,10 +46,10 @@ async def get_papers_by_status(user_id: str, guild_id: str, status: str) -> list
                     pdf_url=row["pdf_url"] or "",
                     doi=row["doi"] or "",
                 ),
-                "saved_at": row["saved_at"],
-                "status": row["status"],
-                "note": row["note"],
-            }
+                saved_at=row["saved_at"],
+                status=row["status"],
+                note=row["note"],
+            )
             for row in rows
         ]
 

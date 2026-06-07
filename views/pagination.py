@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import discord
 
+from models.saved_paper import SavedPaper
 from utils.embeds import build_collections_list_embed, build_library_embed
 
 ITEMS_PER_PAGE = 5
@@ -12,7 +13,7 @@ class PaginatedLibraryView(discord.ui.View):
 
     def __init__(
         self,
-        entries: list[dict],
+        entries: list[SavedPaper],
         title: str = "\U0001f4da  My Library",
         timeout: float = 120,
     ) -> None:

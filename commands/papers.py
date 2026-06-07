@@ -16,11 +16,7 @@ SortBy = Literal["relevance", "submittedDate", "lastUpdatedDate"]
 SortOrder = Literal["descending", "ascending"]
 
 
-async def _send_error(interaction: discord.Interaction, message: str) -> None:
-    if interaction.response.is_done():
-        await interaction.followup.send(message, ephemeral=True)
-    else:
-        await interaction.response.send_message(message, ephemeral=True)
+from commands.common import send_error
 
 
 class Papers(commands.Cog):
@@ -82,7 +78,7 @@ class Papers(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /paper_search")
-            await _send_error(
+            await send_error(
                 interaction,
                 "Error while searching arXiv. Please try again.",
             )
@@ -117,7 +113,7 @@ class Papers(commands.Cog):
 
         except Exception:
             logger.exception("Unhandled error in /paper_summary")
-            await _send_error(
+            await send_error(
                 interaction,
                 "Error while fetching paper summary. Please try again.",
             )

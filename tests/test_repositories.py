@@ -53,7 +53,7 @@ async def test_get_saved_papers(db, sample_paper: Paper, sample_paper_b: Paper):
 
     entries = await get_saved_papers("user1", "guild1")
     assert len(entries) == 2
-    ids = {e["paper"].arxiv_id for e in entries}
+    ids = {e.paper.arxiv_id for e in entries}
     assert ids == {sample_paper.arxiv_id, sample_paper_b.arxiv_id}
 
 
@@ -127,7 +127,7 @@ async def test_get_saved_papers_supports_json_and_legacy_formats(db):
         await conn.close()
 
     entries = await get_saved_papers("user1", "guild1")
-    by_id = {e["paper"].arxiv_id: e["paper"] for e in entries}
+    by_id = {e.paper.arxiv_id: e.paper for e in entries}
 
     assert by_id["json-paper"].authors == ["Doe, Jr.", "Alice Smith"]
     assert by_id["json-paper"].categories == ["cs.AI", "math.AG"]
@@ -247,7 +247,7 @@ async def test_set_status(db, sample_paper: Paper):
 
     papers = await get_papers_by_status("user1", "guild1", "reading")
     assert len(papers) == 1
-    assert papers[0]["paper"].arxiv_id == sample_paper.arxiv_id
+    assert papers[0].paper.arxiv_id == sample_paper.arxiv_id
 
 
 @pytest.mark.asyncio
@@ -358,7 +358,7 @@ async def test_add_to_collection(db, sample_paper: Paper):
     papers = await get_collection_papers("user1", "guild1", "ml-papers")
     assert papers is not None
     assert len(papers) == 1
-    assert papers[0]["paper_id"] == sample_paper.arxiv_id
+    assert papers[0].paper.arxiv_id == sample_paper.arxiv_id
 
 
 @pytest.mark.asyncio
