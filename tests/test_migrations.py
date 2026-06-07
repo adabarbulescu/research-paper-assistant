@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
+from contextlib import asynccontextmanager
 
 import aiosqlite
 import pytest
@@ -40,14 +41,17 @@ async def test_init_db_ignores_duplicate_column_operational_error(monkeypatch):
         ]
     )
 
-    monkeypatch.setattr(migrations, "get_connection", AsyncMock(return_value=fake_conn))
+    @asynccontextmanager
+    async def fake_db_session():
+        yield fake_conn
+
+    monkeypatch.setattr(migrations, "db_session", fake_db_session)
     monkeypatch.setattr(migrations, "_migrate_guild_id", AsyncMock())
 
     await migrations.init_db()
 
     assert fake_conn.executescript.await_count == 1
     assert fake_conn.commit.await_count == 1
-    assert fake_conn.close.await_count == 1
 
 
 @pytest.mark.asyncio
@@ -59,10 +63,12 @@ async def test_init_db_reraises_unexpected_operational_error(monkeypatch):
         ]
     )
 
-    monkeypatch.setattr(migrations, "get_connection", AsyncMock(return_value=fake_conn))
+    @asynccontextmanager
+    async def fake_db_session():
+        yield fake_conn
+
+    monkeypatch.setattr(migrations, "db_session", fake_db_session)
     monkeypatch.setattr(migrations, "_migrate_guild_id", AsyncMock())
 
     with pytest.raises(aiosqlite.OperationalError):
         await migrations.init_db()
-
-    assert fake_conn.close.await_count == 1

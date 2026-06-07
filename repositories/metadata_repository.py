@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from database.connection import get_connection
+from database.connection import db_session
 from models.paper import Paper
 from models.saved_paper import VALID_STATUSES
 from utils.serialization import decode_str_list
@@ -10,22 +10,18 @@ async def set_status(user_id: str, guild_id: str, paper_id: str, status: str) ->
     """Set reading status. Returns 'updated', 'not_found', or 'invalid'."""
     if status not in VALID_STATUSES:
         return "invalid"
-    conn = await get_connection()
-    try:
+    async with db_session() as conn:
         cursor = await conn.execute(
             "UPDATE saved_papers SET status = ? WHERE user_id = ? AND guild_id = ? AND paper_id = ?",
             (status, user_id, guild_id, paper_id),
         )
         await conn.commit()
         return "updated" if cursor.rowcount > 0 else "not_found"
-    finally:
-        await conn.close()
 
 
 async def get_papers_by_status(user_id: str, guild_id: str, status: str) -> list[dict]:
     """Return saved papers filtered by status."""
-    conn = await get_connection()
-    try:
+    async with db_session() as conn:
         cursor = await conn.execute(
             """
             SELECT paper_id, title, authors, summary, published, categories,
@@ -56,28 +52,22 @@ async def get_papers_by_status(user_id: str, guild_id: str, status: str) -> list
             }
             for row in rows
         ]
-    finally:
-        await conn.close()
 
 
 async def set_note(user_id: str, guild_id: str, paper_id: str, note: str) -> bool:
     """Set or update a note on a saved paper. Returns True if paper exists."""
-    conn = await get_connection()
-    try:
+    async with db_session() as conn:
         cursor = await conn.execute(
             "UPDATE saved_papers SET note = ? WHERE user_id = ? AND guild_id = ? AND paper_id = ?",
             (note.strip(), user_id, guild_id, paper_id),
         )
         await conn.commit()
         return cursor.rowcount > 0
-    finally:
-        await conn.close()
 
 
 async def get_note(user_id: str, guild_id: str, paper_id: str) -> str | None:
     """Get the note for a saved paper. Returns None if paper not found."""
-    conn = await get_connection()
-    try:
+    async with db_session() as conn:
         cursor = await conn.execute(
             "SELECT note FROM saved_papers WHERE user_id = ? AND guild_id = ? AND paper_id = ?",
             (user_id, guild_id, paper_id),
@@ -86,5 +76,3 @@ async def get_note(user_id: str, guild_id: str, paper_id: str) -> str | None:
         if row is None:
             return None
         return row["note"] or ""
-    finally:
-        await conn.close()

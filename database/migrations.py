@@ -4,7 +4,7 @@ import logging
 
 import aiosqlite
 
-from database.connection import get_connection
+from database.connection import db_session
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS saved_papers (
@@ -126,8 +126,7 @@ async def _migrate_guild_id(conn) -> None:
 
 
 async def init_db() -> None:
-    conn = await get_connection()
-    try:
+    async with db_session() as conn:
         await conn.execute("PRAGMA foreign_keys = ON;")
         await conn.executescript(SCHEMA)
         for migration in COLUMN_MIGRATIONS:
@@ -140,5 +139,3 @@ async def init_db() -> None:
                 raise
         await _migrate_guild_id(conn)
         await conn.commit()
-    finally:
-        await conn.close()

@@ -25,6 +25,18 @@ SORT_ORDER_OPTIONS = {"descending", "ascending"}
 _ID_PATTERN = re.compile(r"(?:(\d{4}\.\d{4,5})|([a-zA-Z][a-zA-Z0-9.\-]+/\d{7}))(v\d+)?$")
 
 
+_session: aiohttp.ClientSession | None = None
+
+def get_session() -> aiohttp.ClientSession:
+    global _session
+    if _session is None or _session.closed:
+        _session = aiohttp.ClientSession(
+            timeout=ARXIV_REQUEST_TIMEOUT,
+            headers=ARXIV_HEADERS,
+        )
+    return _session
+
+
 def _clean_text(text: str) -> str:
     if not text:
         return ""
@@ -141,13 +153,10 @@ async def search_arxiv(
     if sort_order in SORT_ORDER_OPTIONS and sort_order != "descending":
         params["sortOrder"] = sort_order
 
-    async with aiohttp.ClientSession(
-        timeout=ARXIV_REQUEST_TIMEOUT,
-        headers=ARXIV_HEADERS,
-    ) as session:
-        async with session.get(ARXIV_API_URL, params=params) as response:
-            response.raise_for_status()
-            data = await response.text()
+    session = get_session()
+    async with session.get(ARXIV_API_URL, params=params) as response:
+        response.raise_for_status()
+        data = await response.text()
 
     root = _parse_feed(data)
     entries = root.findall("atom:entry", ATOM_NS)
@@ -163,13 +172,10 @@ async def get_paper_by_id(arxiv_id: str) -> Paper | None:
 
     params: dict[str, str | int] = {"id_list": clean_id, "max_results": 1}
 
-    async with aiohttp.ClientSession(
-        timeout=ARXIV_REQUEST_TIMEOUT,
-        headers=ARXIV_HEADERS,
-    ) as session:
-        async with session.get(ARXIV_API_URL, params=params) as response:
-            response.raise_for_status()
-            data = await response.text()
+    session = get_session()
+    async with session.get(ARXIV_API_URL, params=params) as response:
+        response.raise_for_status()
+        data = await response.text()
 
     root = _parse_feed(data)
     entries = root.findall("atom:entry", ATOM_NS)

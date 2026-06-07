@@ -6,6 +6,7 @@ import asyncio
 import uuid
 from pathlib import Path
 from unittest.mock import patch
+from contextlib import asynccontextmanager
 
 import aiosqlite
 import pytest
@@ -38,10 +39,20 @@ async def db():
         await conn.execute("PRAGMA foreign_keys=ON;")
         return conn
 
-    with patch("database.connection.get_connection", _get_connection), \
-         patch("repositories.library_repository.get_connection", _get_connection), \
-         patch("repositories.metadata_repository.get_connection", _get_connection), \
-         patch("repositories.collection_repository.get_connection", _get_connection):
+    @asynccontextmanager
+    async def _db_session():
+        conn = await _get_connection()
+        try:
+            yield conn
+        finally:
+            await conn.close()
+
+    with patch("database.connection.db_session", _db_session), \
+         patch("database.connection.get_connection", _get_connection), \
+         patch("repositories.library_repository.db_session", _db_session), \
+         patch("repositories.metadata_repository.db_session", _db_session), \
+         patch("repositories.collection_repository.db_session", _db_session), \
+         patch("database.migrations.db_session", _db_session):
 
         # Run schema creation
         conn = await _get_connection()
