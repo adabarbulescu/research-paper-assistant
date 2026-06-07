@@ -8,28 +8,23 @@ from discord import app_commands
 from discord.ext import commands
 
 from config import logger
-from models.paper import Paper
 from repositories.collection_repository import (
     add_to_collection,
     create_collection,
     delete_collection,
-    get_collection_names,
     get_collection_papers,
     get_collections,
     remove_from_collection,
 )
-from repositories.library_repository import get_paper_ids
 from utils.citations import to_bibtex, to_markdown_citation, to_plain_citation
 from utils.embeds import build_collection_embed, build_collections_list_embed
-from utils.serialization import decode_str_list
 from views.confirm import ConfirmView
 from views.pagination import PaginatedCollectionsView, COLLECTIONS_PER_PAGE
 
 
-CitationFormat = Literal["bibtex", "plain", "markdown"]
-
-
 from commands.common import get_guild_id, send_error, paper_id_autocomplete, collection_autocomplete
+
+CitationFormat = Literal["bibtex", "plain", "markdown"]
 
 
 

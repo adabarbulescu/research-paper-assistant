@@ -12,11 +12,10 @@ from utils.embeds import build_detail_embed, build_search_embed
 from views.paper_select import PaperSelectView
 
 
+from commands.common import send_error
+
 SortBy = Literal["relevance", "submittedDate", "lastUpdatedDate"]
 SortOrder = Literal["descending", "ascending"]
-
-
-from commands.common import send_error
 
 
 class Papers(commands.Cog):

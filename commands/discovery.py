@@ -8,17 +8,16 @@ from discord import app_commands
 from discord.ext import commands
 
 from config import logger
-from repositories.library_repository import get_all_papers, get_paper_ids
+from repositories.library_repository import get_all_papers
 from services.arxiv import get_paper_by_id
 from services.similarity import find_related
 from utils.citations import to_bibtex, to_markdown_citation, to_plain_citation
 from utils.embeds import build_related_embed
 
 
-CitationFormat = Literal["bibtex", "plain", "markdown"]
-
-
 from commands.common import get_guild_id, send_error, paper_id_autocomplete
+
+CitationFormat = Literal["bibtex", "plain", "markdown"]
 
 
 async def _send_citation(

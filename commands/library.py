@@ -9,7 +9,6 @@ from discord.ext import commands
 from config import logger
 from repositories.library_repository import (
     get_library_stats,
-    get_paper_ids,
     get_saved_papers,
     remove_paper,
 )
@@ -24,12 +23,11 @@ from views.confirm import ConfirmView
 from views.pagination import ITEMS_PER_PAGE, PaginatedLibraryView
 
 
+from commands.common import get_guild_id, send_error, paper_id_autocomplete
+
 ReadingStatus = Literal["to-read", "reading", "done"]
 
 STATUS_EMOJI = {"to-read": "\U0001F4D6", "reading": "\U0001F4D6", "done": "\u2705"}
-
-
-from commands.common import get_guild_id, send_error, paper_id_autocomplete
 
 
 class Library(commands.Cog):
